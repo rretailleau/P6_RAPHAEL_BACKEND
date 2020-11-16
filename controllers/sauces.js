@@ -49,6 +49,32 @@ exports.modifySauce = (req, res, next) => {
 
 // PUT /api/sauces/:id/like  enregistre le nb 0/1 de l'id et l'ajoute au total like/dislike
 exports.likeSauce = (req, res, next) => {
-  Sauce.findOne({ _id: req.params.id });
+    Sauce.findOne({ _id: req.params.id })
+    .then((sauce) => {
+      const userId = req.body.userId;
+      const userWantsToLike = req.body.like === 1;
+      const userWantsToDislike = req.body.like === -1;
+      const userWantsToCancel = req.body.like === 0;
+      const userCanLike = !sauce.usersLiked.includes(userId);
+      const userCanDislike = !sauce.usersDisliked.includes(userId);
+      const userCanCancel = (sauce.usersLiked.includes(userId) || sauce.usersDisliked.includes(userId));
+      // identifie letat  de la ressource -1 0 1  
+        // res status sauce req.param = userCanToLike || userCanDislike || userCanCancel
+
+      // annule l'etat pour permettre l'action ou autorise l'action 
+        // si userWantsToLike || userWantsToDislike => userWantsToCancel
+
+      //  effectue l'action L D
+        // sauce.updateOne => userWantsToLike || userWantsToDislike
+
+      // ajoute l'action aux statuts et renvoie le tableau des statuts.
+        // sauce.save 
+
+       // { ...JSON.parse(req.body.sauce)} : { ...req.body };
+
+
+    })
+    .catch(error => res.status(400).json({ error }));
+
 
 };

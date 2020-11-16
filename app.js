@@ -4,8 +4,8 @@ const mongoose = require('mongoose');
 const saucesRoutes = require('./routes/sauces');
 const userRoutes = require('./routes/user');
 const path = require('path');
-
 const app = express();
+
 mongoose.connect('mongodb+srv://Raph:n146RuzCEFMf8ANe@cluster0.ke6f3.mongodb.net/ocp6?retryWrites=true&w=majority',
   { useNewUrlParser: true,
     useUnifiedTopology: true })
