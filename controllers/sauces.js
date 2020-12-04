@@ -1,5 +1,6 @@
 const Sauce = require('../models/Sauce');
 const fs = require('fs');
+const { use } = require('../routes/user');
 
   // POST /api/sauces 
 exports.createSauce = (req, res, next) => {
@@ -7,6 +8,8 @@ exports.createSauce = (req, res, next) => {
   delete sauceObject._id;
   const sauce = new Sauce({
     ...sauceObject,
+    likes: 0,
+    dislikes: 0,
     imageUrl: `${req.protocol}://${req.get('host')}/images/${req.file.filename}`
   });
   sauce.save()
@@ -29,11 +32,18 @@ exports.getOneSauce = (req, res, next) => {
 };
 
   // DELETE /api/sauces/:id supprime la ressource
-exports.deleteSauce = (req, res, next) => {
-  Sauce.deleteOne({ _id: req.params.id })
-    .then(() => res.status(200).json({ message: 'Objet supprimé !'}))
-    .catch(error => res.status(400).json({ error }));
-};
+  exports.deleteSauce = (req, res, next) => {
+    Sauce.findOne({ _id: req.params.id })
+      .then(sauce => {
+        const filename = sauce.imageUrl.split('/images/')[1];
+        fs.unlink(`images/${filename}`, () => {
+          Sauce.deleteOne({ _id: req.params.id })
+            .then(() => res.status(200).json({ message: 'Objet supprimé !'}))
+            .catch(error => res.status(400).json({ error }));
+        });
+      })
+      .catch(error => res.status(500).json({ error }));
+  };
 
 // PUT /api/sauces/:id mofifie 1 objet de la BD
 exports.modifySauce = (req, res, next) => {
@@ -58,23 +68,31 @@ exports.likeSauce = (req, res, next) => {
       const userCanLike = !sauce.usersLiked.includes(userId);
       const userCanDislike = !sauce.usersDisliked.includes(userId);
       const userCanCancel = (sauce.usersLiked.includes(userId) || sauce.usersDisliked.includes(userId));
-      // identifie letat  de la ressource -1 0 1  
-        // res status sauce req.param = userCanToLike || userCanDislike || userCanCancel
+  
+      if (userWantsToLike && userCanLike) {
+        sauce.usersLiked.push(userId);
+      }
 
-      // annule l'etat pour permettre l'action ou autorise l'action 
-        // si userWantsToLike || userWantsToDislike => userWantsToCancel
-
-      //  effectue l'action L D
-        // sauce.updateOne => userWantsToLike || userWantsToDislike
-
-      // ajoute l'action aux statuts et renvoie le tableau des statuts.
-        // sauce.save 
-
-       // { ...JSON.parse(req.body.sauce)} : { ...req.body };
-
-
+      if (userWantsToDislike && userCanDislike) {
+          sauce.usersDisliked.push(userId);
+      }
+      
+      if (userWantsToCancel && userCanCancel) {
+         if (sauce.usersLiked.includes(userId)){
+           const index = sauce.usersLiked.indexOf(userId);
+           sauce.usersLiked.splice(index,1);
+         } else {
+           const index = sauce.usersDisliked.indexOf(userId);
+           sauce.usersDisliked.splice(index,1);
+         }
+      }
+      sauce.likes = sauce.usersLiked.length;
+      sauce.dislikes = sauce.usersDisliked.length;
+ 
+      const updatedSauce = sauce;
+      updatedSauce.save();
+      return updatedSauce;
     })
+    .then(sauce => res.status(200).json(sauce))
     .catch(error => res.status(400).json({ error }));
-
-
 };
